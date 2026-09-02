@@ -19,3 +19,9 @@ docker compose up --build
 ```
 
 Open `http://localhost:8000`.
+
+## Production security
+
+Set a strong, persistent `REPORTFORGE_SECRET_KEY` in the deployment environment before storing external database credentials. If it is not set, the application falls back to a development key; that fallback must not be used for production data.
+
+For the controlled manual update and rollback procedure, see `UPDATE.md`. Unattended updates are intentionally not enabled while the application is still maturing its release and rollback channel.
