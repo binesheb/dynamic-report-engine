@@ -6,6 +6,7 @@ from sqlalchemy.engine import URL
 from cryptography.fernet import Fernet
 import sqlite3,re,os,json,urllib.request,base64
 
+APP_VERSION="1.1.0"
 DB="data/reportforge.db";os.makedirs("data",exist_ok=True)
 KEY=os.getenv("REPORTFORGE_SECRET_KEY")
 if not KEY:
@@ -26,7 +27,7 @@ def init():
   c.execute("INSERT INTO navigation(name) VALUES('Getting Started')");n=c.execute("SELECT last_insert_rowid()").fetchone()[0]
   c.execute("INSERT INTO reports(navigation_id,name,description,sql_query) VALUES(?,?,?,?)",(n,"Sample Report","Local sample report","SELECT 'Configure an external database in Settings' AS message"))
  c.commit();c.close()
-init();app=FastAPI(title="Dynamic Report Engine",version="1.1.0")
+init();app=FastAPI(title="Dynamic Report Engine",version=APP_VERSION)
 
 class Node(BaseModel):name:str;parent_id:int|None=None
 class Connection(BaseModel):
@@ -119,6 +120,6 @@ def run(i:int):
 @app.get("/api/system/updates/check")
 def update():
  try:
-  u=urllib.request.Request("https://api.github.com/repos/binesheb/dynamic-report-engine/releases/latest",headers={"User-Agent":"ReportForge"});d=json.loads(urllib.request.urlopen(u,timeout=4).read());v=d.get("tag_name","v1.1.0").lstrip("v");return {"current":"1.1.0","latest":v,"available":v!="1.1.0"}
- except:return {"current":"1.1.0","latest":"1.1.0","available":False}
+  u=urllib.request.Request("https://api.github.com/repos/binesheb/dynamic-report-engine/releases/latest",headers={"User-Agent":"ReportForge"});d=json.loads(urllib.request.urlopen(u,timeout=4).read());v=d.get("tag_name",f"v{APP_VERSION}").lstrip("v");return {"current":APP_VERSION,"latest":v,"available":v!=APP_VERSION}
+ except:return {"current":APP_VERSION,"latest":APP_VERSION,"available":False}
 app.mount("/",StaticFiles(directory="frontend",html=True),name="frontend")
