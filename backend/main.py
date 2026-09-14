@@ -29,6 +29,10 @@ def init():
  c.commit();c.close()
 init();app=FastAPI(title="Dynamic Report Engine",version=APP_VERSION)
 
+@app.get("/api/health")
+def health():
+ return {"status":"ok","version":APP_VERSION}
+
 class Node(BaseModel):name:str;parent_id:int|None=None
 class Connection(BaseModel):
  name:str;db_type:str;host:str;port:int|None=None;database_name:str;username:str;password:str;options:dict={}
