@@ -121,9 +121,15 @@ def test(x:dict):return execute(x.get("sql_query",""),x.get("connection_id"))
 def run(i:int):
  r=report(i);return execute(r["sql_query"],r.get("connection_id"))
 
+def version_key(version):
+ normalized=version.strip().lstrip("v")
+ if not re.fullmatch(r"\d+(?:\.\d+){0,2}",normalized):
+  return None
+ return tuple(int(part) for part in normalized.split("."))
+
 @app.get("/api/system/updates/check")
 def update():
  try:
-  u=urllib.request.Request("https://api.github.com/repos/binesheb/dynamic-report-engine/releases/latest",headers={"User-Agent":"ReportForge"});d=json.loads(urllib.request.urlopen(u,timeout=4).read());v=d.get("tag_name",f"v{APP_VERSION}").lstrip("v");return {"current":APP_VERSION,"latest":v,"available":v!=APP_VERSION}
+  u=urllib.request.Request("https://api.github.com/repos/binesheb/dynamic-report-engine/releases/latest",headers={"User-Agent":"ReportForge"});d=json.loads(urllib.request.urlopen(u,timeout=4).read());v=d.get("tag_name",f"v{APP_VERSION}").lstrip("v");current_key=version_key(APP_VERSION);latest_key=version_key(v);available=(latest_key>current_key) if current_key is not None and latest_key is not None else v!=APP_VERSION;return {"current":APP_VERSION,"latest":v,"available":available}
  except:return {"current":APP_VERSION,"latest":APP_VERSION,"available":False}
 app.mount("/",StaticFiles(directory="frontend",html=True),name="frontend")
