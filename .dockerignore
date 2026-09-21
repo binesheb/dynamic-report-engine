@@ -1,0 +1,13 @@
+.git
+.github
+.gitignore
+__pycache__
+*.py[cod]
+*.pyo
+.venv
+venv
+env
+node_modules
+frontend/node_modules
+data
+*.log
