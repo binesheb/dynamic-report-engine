@@ -24,3 +24,20 @@ jobs:
         run: python -m pip check
       - name: Compile backend
         run: python -m compileall -q backend
+      - name: Build Docker image
+        run: docker build --pull --tag dynamic-report-engine:ci .
+      - name: Smoke-test container dependencies
+        run: |
+          docker run --rm dynamic-report-engine:ci python -c "import backend.main, cryptography, psycopg, pymysql, pyodbc"
+      - name: Smoke-test container health endpoint
+        run: |
+          docker run --rm --detach --name dynamic-report-engine-ci --publish 127.0.0.1:8000:8000 dynamic-report-engine:ci
+          trap 'docker rm --force dynamic-report-engine-ci >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:8000/api/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs dynamic-report-engine-ci
+          exit 1
