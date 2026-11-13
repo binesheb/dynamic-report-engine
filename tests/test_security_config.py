@@ -1,5 +1,8 @@
 import os
+import subprocess
+import sys
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from cryptography.fernet import Fernet
@@ -43,6 +46,21 @@ class FernetConfigurationTests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(RuntimeError, "valid URL-safe base64 Fernet key"):
                 load_fernet()
+
+    def test_application_import_fails_closed_without_production_key(self):
+        env = os.environ.copy()
+        env.pop("REPORTFORGE_SECRET_KEY", None)
+        env.pop("REPORTFORGE_ENV", None)
+        result = subprocess.run(
+            [sys.executable, "-c", "import backend.main"],
+            cwd=Path(__file__).resolve().parents[1],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("REPORTFORGE_SECRET_KEY is required", result.stderr)
 
 
 if __name__ == "__main__":
