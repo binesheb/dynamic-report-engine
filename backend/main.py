@@ -3,15 +3,12 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import create_engine,text
 from sqlalchemy.engine import URL
-from cryptography.fernet import Fernet
-import sqlite3,re,os,json,urllib.request,base64
+from .security import load_fernet
+import sqlite3,re,os,json,urllib.request
 
 APP_VERSION="1.1.0"
 DB="data/reportforge.db";os.makedirs("data",exist_ok=True)
-KEY=os.getenv("REPORTFORGE_SECRET_KEY")
-if not KEY:
- KEY=base64.urlsafe_b64encode(b"reportforge-development-secret-key-32").decode()
-FERNET=Fernet(KEY.encode())
+FERNET = load_fernet()
 
 def db():
  c=sqlite3.connect(DB);c.row_factory=sqlite3.Row;return c
