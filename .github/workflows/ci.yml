@@ -24,3 +24,6 @@ jobs:
         run: python -m pip check
       - name: Compile backend
         run: python -m compileall -q backend
+      - name: Verify Docker Compose binds the API to loopback
+        run: |
+          docker compose config --format json | python -c 'import json,sys; ports=json.load(sys.stdin)["services"]["reportforge"]["ports"]; assert any(p.get("host_ip") == "127.0.0.1" and str(p.get("published")) == "8000" and str(p.get("target")) == "8000" for p in ports), ports'
