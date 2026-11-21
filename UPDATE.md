@@ -33,22 +33,22 @@ docker compose up -d --wait
 
 ## Legacy encrypted connection credentials
 
-Older versions used a fixed, source-controlled Fernet fallback whenever `REPORTFORGE_SECRET_KEY` was not set. The production startup path in this change intentionally refuses to use that fallback. Passwords saved by an older deployment while the variable was unset will not decrypt with a newly configured key.
+The pre-change source had a fallback path when `REPORTFORGE_SECRET_KEY` was unset. Code inspection shows that path base64-encoded a 37-byte literal, while Fernet requires a URL-safe base64 key that decodes to exactly 32 bytes. The old no-key path therefore raises during `Fernet(...)` initialization before the application starts; it cannot have encrypted connection rows through the normal startup path.
 
-Before upgrading an installation that may have used the fallback:
+Do not assume existing `password_enc` rows were created with that fallback, and do not rotate keys or delete saved connections solely on that assumption. Establish which valid key was actually used by the historical deployment before changing anything:
 
-1. Stop the service and make a restricted backup of the database before changing keys:
+1. Preserve a restricted database backup before any migration:
    ```bash
    docker compose down
    umask 077
    cp -p data/reportforge.db data/reportforge.db.pre-key-migration.bak
    ```
-2. If the old deployment already used a configured `REPORTFORGE_SECRET_KEY`, retain that exact key; do not replace it. If it relied on the built-in fallback, treat the stored external database passwords as exposed and rotate them at the database servers.
-3. For fallback-encrypted rows, remove the affected saved connection entries and recreate them with the rotated credentials after the updated service starts. Reassign reports to the new connection records and test each report before returning the service to users. If the records cannot be recreated and verified safely, stop the deployment and prepare a controlled offline migration instead.
+2. If the deployment used a valid configured `REPORTFORGE_SECRET_KEY`, retain that exact key. Do not replace it merely as part of this upgrade.
+3. Only if deployment evidence shows that existing rows were encrypted with a different valid key, prepare a controlled offline re-encryption or recreate the affected connections with rotated credentials. Test the migration against a restricted backup first; if the key history or row provenance is uncertain, stop and resolve that before modifying production data.
 4. Configure a persistent `REPORTFORGE_SECRET_KEY` in the deployment secret manager and keep it stable across restarts. Use `REPORTFORGE_ENV=production` (or leave it unset, since production is the default). Never set `REPORTFORGE_ENV=development` in production.
-5. Keep the backup access-restricted until the migration and report checks are complete, then dispose of it under the data-retention policy. Never print or commit key material or database passwords.
+5. Verify every saved connection and dependent report before returning the service to users. Keep backups access-restricted and never print or commit key material or database passwords.
 
-Do not assume that setting a new key will decrypt rows written with the old fallback.
+Never infer the encryption key from the presence of database rows, and never log key material while checking deployment history.
 
 ## Automatic updates
 
